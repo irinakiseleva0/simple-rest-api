@@ -1,81 +1,77 @@
 import express from "express";
-import { logMiddleware } from "./middleware/middleware.js";
+import config from "./config/config.js";
+import { logMiddleware } from "./middleware/logger.js";
+import { validateApiKey } from "./middleware/apiKey.js";
+import userRoutes from "./routes/userRoutes.js";
+import carRoutes from "./routes/carRoutes.js";
+import { initializeDatabase } from "./config/database.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-const users = [
-    { id: 1, name: "Alice" },
-    { id: 2, name: "Bob" },
-    { id: 3, name: "Charlie" },
-    { id: 4, name: "Dave" },
-];
+await initializeDatabase();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(logMiddleware);
 
-// 1) Middleware to log requests
-app.use(async (req, res, next) => {
-    const date = new Date().toISOString();
-    console.log(`[${date}] ${req.method} ${req.url}`);
-
-    const response = await fetch("https://jsonplaceholder.typicode.com/users/1");
-    const data = await response.json();
-    req.data = data;
-    console.log(data);
-
-    next();
-});
-
-// 2) Async middleware fetching external data
-app.use(async (req, res, next) => {
-    try {
-        const response = await fetch("https://jsonplaceholder.typicode.com/users/1");
-        if (!response.ok) throw new Error(`Upstream error: ${response.status}`);
-        req.data = await response.json();
-        next();
-    } catch (err) {
-        next(err);
-    }
-});
-
-// GET route
-app.get("/", logMiddleware, (req, res) => {
-    res.json(users);
-});
-
-
-// POST route
-app.post("/", (req, res) => {
-    res.status(201).json({
-        message: "Received",
-        body: req.body || null,
-        data: req.data,
+app.get("/", (req, res) => {
+    res.json({
+        message: "Welcome to the API",
+        version: "1.0.0",
+        environment: config.nodeEnv,
+        endpoints: {
+            users: "/users",
+            cars: "/cars"
+        }
     });
 });
 
-// 404 handler
+app.get("/health", (req, res) => {
+    res.json({
+        status: "OK",
+        timestamp: new Date().toISOString(),
+        environment: config.nodeEnv
+    });
+});
+
+app.use("/users", validateApiKey, userRoutes);
+app.use("/cars", validateApiKey, carRoutes);
+
 app.use((req, res) => {
-    res.status(404).json({ message: "Not Found" });
+    res.status(404).json({
+        error: "Not Found",
+        message: `Route ${req.method} ${req.path} not found`
+    });
 });
 
-// Global error handler
-app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
-    console.error("Error:", err.message || err);
-    res.status(500).json({ message: "Internal server error" });
+app.use((err, req, res, next) => {
+    console.error("Error:", err);
+    res.status(err.status || 500).json({
+        error: err.message || "Internal Server Error",
+        ...(config.isDevelopment() && { stack: err.stack })
+    });
 });
 
-// Start the server safely
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(config.port, () => {
+    console.log(`✅ Server running on http://localhost:${config.port}`);
+    console.log(`📊 Environment: ${config.nodeEnv}`);
+    console.log(
+        `🔒 API Key protection: ${config.apiKey ? "ENABLED" : "DISABLED (no API_KEY set)"
+        }`
+    );
+    console.log(`\nAPI Endpoints:`);
+    console.log(`  GET    /              - Welcome (public)`);
+    console.log(`  GET    /health        - Health check (public)`);
+    console.log(`  GET    /users         - Get all users (protected)`);
+    console.log(`  GET    /users/:id     - Get user by id (protected)`);
+    console.log(`  POST   /users         - Create user (protected)`);
+    console.log(`  PUT    /users/:id     - Update user (protected)`);
+    console.log(`  DELETE /users/:id     - Delete user (protected)`);
+    console.log(`  GET    /cars          - Get all cars (protected)`);
+    console.log(`  GET    /cars/:id      - Get car by id (protected)`);
+    console.log(`  POST   /cars          - Create car (protected)`);
+    console.log(`  PUT    /cars/:id      - Update car (protected)`);
+    console.log(`  DELETE /cars/:id      - Delete car (protected)`);
 });
 
-server.on("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-        console.error(`Port ${PORT} is already in use. Change PORT or stop the existing process.`);
-    } else if (err.code === "EACCES") {
-        console.error(`Permission denied for port ${PORT}. Try a port >= 1024.`);
-    } else {
-        console.error(err);
-    }
-    process.exit(1);
-});
+export default app;

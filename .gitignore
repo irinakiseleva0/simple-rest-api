@@ -1,14 +1,11 @@
-# Dependencies
 node_modules/
 
-# Environment variables (CRITICAL - contains secrets!)
 .env
 .env.local
 .env.production.local
 .env.development.local
 .env.test.local
 
-# Logs
 logs/
 *.log
 npm-debug.log*
@@ -17,21 +14,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Database files (for SQLite)
 *.sqlite
 *.sqlite3
 *.db
 
-# Build outputs
 dist/
 build/
 out/
 
-# Testing
 coverage/
 .nyc_output/
 
-# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -40,7 +33,6 @@ coverage/
 ehthumbs.db
 Thumbs.db
 
-# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea/
@@ -53,7 +45,6 @@ Thumbs.db
 *.swo
 *~
 
-# Temporary files
 *.tmp
 *.temp
 .cache/

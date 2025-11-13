@@ -1,5 +1,6 @@
-export const logMiddleware = (req, res, next) => {
-    const date = new Date().toISOString();
-    console.log(`[${date}] ${req.method} ${req.url}`);
+export const exampleMiddleware = (req, res, next) => {
+    console.log("Example middleware executed.");
     next();
 };
+
+export default exampleMiddleware;
