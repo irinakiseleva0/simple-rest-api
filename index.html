@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Simple REST API Frontend</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #111827;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1,
+        h2 {
+            color: #f9fafb;
+        }
+
+        .card {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #9ca3af;
+        }
+
+        input {
+            width: 100%;
+            max-width: 480px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            background: #111827;
+            color: #e5e7eb;
+            margin-bottom: 10px;
+        }
+
+        input::placeholder {
+            color: #6b7280;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-top: 4px;
+        }
+
+        button.secondary {
+            background: #6b7280;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .col {
+            flex: 1 1 300px;
+            min-width: 280px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #374151;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            color: #9ca3af;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            background: #111827;
+            color: #9ca3af;
+        }
+
+        .status {
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .status.ok {
+            color: #22c55e;
+        }
+
+        .status.error {
+            color: #f97316;
+        }
+
+        code {
+            background: #111827;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #e5e7eb;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>My REST API Frontend</h1>
+    <p>
+        Simple client for my Express + SQLite API (users &amp; cars).
+        It calls the deployed backend on Render using an API key.
+    </p>
+
+    <div class="card">
+        <h2>1. Configuration</h2>
+
+        <label for="baseUrl">API Base URL</label>
+        <input id="baseUrl" type="text" placeholder="https://simple-rest-api-5jgk.onrender.com"
+            value="https://simple-rest-api-5jgk.onrender.com" />
+
+        <label for="apiKey">API Key (X-API-Key)</label>
+        <input id="apiKey" type="password" placeholder="Enter your API key here" />
+
+        <button id="testBtn">Test connection</button>
+        <span id="testStatus" class="status"></span>
+    </div>
+
+    <div class="card">
+        <h2>2. Data</h2>
+        <div class="row">
+
+            <div class="col">
+                <h3>Users <span class="badge" id="usersCount">0</span></h3>
+                <button id="loadUsersBtn" class="secondary">Load users</button>
+                <div id="usersStatus" class="status"></div>
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="col">
+                <h3>Cars <span class="badge" id="carsCount">0</span></h3>
+                <button id="loadCarsBtn" class="secondary">Load cars</button>
+                <div id="carsStatus" class="status"></div>
+                <table id="carsTable">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Make / Model</th>
+                            <th>Year</th>
+                            <th>Color</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrlInput = document.getElementById("baseUrl");
+        const apiKeyInput = document.getElementById("apiKey");
+        const testBtn = document.getElementById("testBtn");
+        const testStatus = document.getElementById("testStatus");
+
+        const loadUsersBtn = document.getElementById("loadUsersBtn");
+        const loadCarsBtn = document.getElementById("loadCarsBtn");
+
+        const usersStatus = document.getElementById("usersStatus");
+        const carsStatus = document.getElementById("carsStatus");
+
+        const usersTableBody = document.querySelector("#usersTable tbody");
+        const carsTableBody = document.querySelector("#carsTable tbody");
+
+        const usersCountBadge = document.getElementById("usersCount");
+        const carsCountBadge = document.getElementById("carsCount");
+
+        function getConfig() {
+            const baseUrl = baseUrlInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+
+            if (!baseUrl) {
+                throw new Error("Base URL is required");
+            }
+            if (!apiKey) {
+                throw new Error("API key is required");
+            }
+
+            return { baseUrl, apiKey };
+        }
+
+        async function apiFetch(path) {
+            const { baseUrl, apiKey } = getConfig();
+
+            const res = await fetch(`${baseUrl}${path}`, {
+                headers: {
+                    "X-API-Key": apiKey,
+                    "Accept": "application/json"
+                }
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text}`);
+            }
+
+            return res.json();
+        }
+
+        testBtn.addEventListener("click", async () => {
+            testStatus.textContent = "";
+            testStatus.className = "status";
+
+            try {
+                testBtn.disabled = true;
+                testBtn.textContent = "Testing...";
+                const data = await apiFetch("/");
+                testStatus.textContent = `OK: ${data.message || "Welcome"}`;
+                testStatus.classList.add("ok");
+            } catch (err) {
+                console.error(err);
+                testStatus.textContent = `Error: ${err.message}`;
+                testStatus.classList.add("error");
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = "Test connection";
+            }
+        });
+
+        loadUsersBtn.addEventListener("click", async () => {
+            usersStatus.textContent = "";
+            usersStatus.className = "status";
+            usersTableBody.innerHTML = "";
+            usersCountBadge.textContent = "0";
+
+            try {
+                loadUsersBtn.disabled = true;
+                loadUsersBtn.textContent = "Loading...";
+
+                const users = await apiFetch("/users");
+                usersCountBadge.textContent = users.length;
+
+                users.forEach(user => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.name}</td>
+            <td>${user.email || ""}</td>
+            <td>${user.created_at || ""}</td>
+          `;
+                    usersTableBody.appendChild(tr);
+                });
+
+                usersStatus.textContent = "Users loaded successfully.";
+                usersStatus.classList.add("ok");
+            } catch (err) {
+                console.error(err);
+                usersStatus.textContent = `Error: ${err.message}`;
+                usersStatus.classList.add("error");
+            } finally {
+                loadUsersBtn.disabled = false;
+                loadUsersBtn.textContent = "Load users";
+            }
+        });
+
+        loadCarsBtn.addEventListener("click", async () => {
+            carsStatus.textContent = "";
+            carsStatus.className = "status";
+            carsTableBody.innerHTML = "";
+            carsCountBadge.textContent = "0";
+
+            try {
+                loadCarsBtn.disabled = true;
+                loadCarsBtn.textContent = "Loading...";
+
+                const cars = await apiFetch("/cars");
+                carsCountBadge.textContent = cars.length;
+
+                cars.forEach(car => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${car.id}</td>
+            <td>${car.make} ${car.model}</td>
+            <td>${car.year || ""}</td>
+            <td>${car.color || ""}</td>
+            <td>${car.price != null ? car.price : ""}</td>
+          `;
+                    carsTableBody.appendChild(tr);
+                });
+
+                carsStatus.textContent = "Cars loaded successfully.";
+                carsStatus.classList.add("ok");
+            } catch (err) {
+                console.error(err);
+                carsStatus.textContent = `Error: ${err.message}`;
+                carsStatus.classList.add("error");
+            } finally {
+                loadCarsBtn.disabled = false;
+                loadCarsBtn.textContent = "Load cars";
+            }
+        });
+    </script>
+</body>
+
+</html>
