@@ -32,11 +32,4 @@ export const validateApiKey = (req, res, next) => {
     next();
 };
 
-export const validateApiKeyProduction = (req, res, next) => {
-    if (config.isProduction()) {
-        return validateApiKey(req, res, next);
-    }
-    next();
-};
-
 export default validateApiKey;
