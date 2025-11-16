@@ -1,6 +1,10 @@
 import config from "../config/config.js";
 
 export const validateApiKey = (req, res, next) => {
+    if (req.method === "OPTIONS") {
+        return next();
+    }
+
     const apiKeyHeader = req.headers["x-api-key"];
     const authHeader = req.headers["authorization"];
 
