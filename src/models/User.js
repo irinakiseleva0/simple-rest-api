@@ -4,13 +4,13 @@ class User {
 
     static tableName = "users";
 
-
     static createTable() {
         const sql = `
       CREATE TABLE IF NOT EXISTS ${this.tableName} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT UNIQUE,
+        avatar TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -37,17 +37,17 @@ class User {
     }
 
     static create(userData) {
-        const { name, email } = userData;
+        const { name, email, avatar } = userData;
         const stmt = db.prepare(`
-      INSERT INTO ${this.tableName} (name, email)
-      VALUES (?, ?)
+      INSERT INTO ${this.tableName} (name, email, avatar)
+      VALUES (?, ?, ?)
     `);
-        const result = stmt.run(name, email || null);
+        const result = stmt.run(name, email || null, avatar || null);
         return this.findById(result.lastInsertRowid);
     }
 
     static update(id, userData) {
-        const { name, email } = userData;
+        const { name, email, avatar } = userData;
 
         const updates = [];
         const values = [];
@@ -62,10 +62,14 @@ class User {
             values.push(email);
         }
 
+        if (avatar !== undefined) {
+            updates.push("avatar = ?");
+            values.push(avatar);
+        }
+
         updates.push("updated_at = CURRENT_TIMESTAMP");
 
         if (updates.length === 1) {
-
             return this.findById(id);
         }
 
@@ -112,18 +116,33 @@ class User {
         return stmt.get().count;
     }
 
-
     static seed() {
         const count = this.count();
 
         if (count === 0) {
-            console.log("📝 Seeding users table...");
+            console.log(" Seeding users table...");
 
             const sampleUsers = [
-                { name: "Alice", email: "alice@example.com" },
-                { name: "Bob", email: "bob@example.com" },
-                { name: "Charlie", email: "charlie@example.com" },
-                { name: "Dave", email: "dave@example.com" },
+                {
+                    name: "Alice",
+                    email: "alice@example.com",
+                    avatar: "https://randomuser.me/api/portraits/women/1.jpg",
+                },
+                {
+                    name: "Bob",
+                    email: "bob@example.com",
+                    avatar: "https://randomuser.me/api/portraits/men/78.jpg",
+                },
+                {
+                    name: "Charlie",
+                    email: "charlie@example.com",
+                    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+                },
+                {
+                    name: "Dave",
+                    email: "dave@example.com",
+                    avatar: "https://randomuser.me/api/portraits/men/45.jpg",
+                },
             ];
 
             sampleUsers.forEach((user) => this.create(user));

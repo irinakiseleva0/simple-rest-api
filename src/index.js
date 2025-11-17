@@ -6,10 +6,14 @@ import { validateApiKey } from "./middleware/apiKey.js";
 import userRoutes from "./routes/userRoutes.js";
 import carRoutes from "./routes/carRoutes.js";
 import { initializeDatabase } from "./config/database.js";
+import User from "./models/User.js";
 
 const app = express();
 
 await initializeDatabase();
+
+User.createTable();
+User.seed();
 
 app.use(
     cors({
@@ -46,14 +50,12 @@ app.get("/health", (req, res) => {
 app.use("/users", validateApiKey, userRoutes);
 app.use("/cars", validateApiKey, carRoutes);
 
-
 app.use((req, res) => {
     res.status(404).json({
         error: "Not Found",
         message: `Route ${req.method} ${req.path} not found`,
     });
 });
-
 
 app.use((err, req, res, next) => {
     res.status(err.status || 500).json({

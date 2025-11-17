@@ -228,6 +228,8 @@
         }
 
         async function apiFetch(path) {
+            console.log("running");
+
             const { baseUrl, apiKey } = getConfig();
 
             const res = await fetch(`${baseUrl}${path}`, {
@@ -253,6 +255,8 @@
                 testBtn.disabled = true;
                 testBtn.textContent = "Testing...";
                 const data = await apiFetch("/");
+                console.log(data);
+
                 testStatus.textContent = `OK: ${data.message || "Welcome"}`;
                 testStatus.classList.add("ok");
             } catch (err) {
@@ -277,6 +281,8 @@
 
                 const users = await apiFetch("/users");
                 usersCountBadge.textContent = users.length;
+                console.log();
+                
 
                 users.forEach(user => {
                     const tr = document.createElement("tr");
